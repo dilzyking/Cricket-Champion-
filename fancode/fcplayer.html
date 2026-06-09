@@ -1,333 +1,263 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
+
 <meta charset="UTF-8">
-<title>CRICKLY Player</title>
+<title>CRICKLY FANCODE LIVE WEB PLAYER</title>
+
 <meta name="referrer" content="no-referrer">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Barlow+Condensed:wght@700;800&display=swap" rel="stylesheet">
-<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+<!-- FONT -->
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 
+<!-- YOUR MAIN CSS -->
+<link rel="stylesheet" href="style.css">
+
+<!-- SHAKA PLAYER -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.6.0/shaka-player.ui.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.6.0/controls.min.css">
 
 <style>
-  :root {
-    --bg: #060a14;
-    --surface: #0d1526;
-    --border: #1e2d47;
-    --blue: #3b82f6;
-    --text: #f1f5f9;
-    --muted: #64748b;
-    --muted2: #94a3b8;
-    --live: #ef4444;
-  }
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-  html, body {
-    width: 100%; height: 100%;
-    background: #000;
-    font-family: 'Inter', sans-serif;
-    color: var(--text);
-    overflow: hidden;
-    -webkit-user-select: none;
-    user-select: none;
-    -webkit-tap-highlight-color: transparent;
-  }
+/* PLAYER ONLY STYLES */
 
-  /* VIDEO */
-  .video-container {
-    position: fixed; top: 0; left: 0;
-    width: 100%; height: 100%;
-    background: #000;
-  }
-  .shaka-video-container { width: 100%; height: 100%; }
-  video {
-    width: 100%; height: 100%;
-    object-fit: contain;
-    background: #000;
-  }
+html,body{
+margin:0;
+padding:0;
+background:#000;
+height:100%;
+width:100%;
+overflow:hidden;
+font-family:'Poppins',sans-serif;
+}
 
-  /* LOADING */
-  #loadingScreen {
-    position: fixed; inset: 0;
-    background: var(--bg);
-    z-index: 1000;
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    transition: opacity .5s;
-  }
-  #loadingScreen.fade-out { opacity: 0; pointer-events: none; }
+.video-container{
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:#000;
+}
 
-  .loader-logo {
-    display: flex; align-items: center; gap: 10px;
-    margin-bottom: 36px;
-  }
-  .loader-logo-icon {
-    width: 44px; height: 44px;
-    background: linear-gradient(135deg, #3b82f6, #6366f1);
-    border-radius: 12px;
-    display: flex; align-items: center; justify-content: center;
-  }
-  .loader-logo-icon .material-icons-round { font-size: 24px; color: #fff; }
-  .loader-logo-text {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-size: 28px; font-weight: 800;
-    letter-spacing: 3px;
-  }
-  .spinner {
-    border: 4px solid rgba(255,255,255,.15);
-    border-top: 4px solid var(--blue);
-    border-radius: 50%;
-    width: 44px; height: 44px;
-    animation: spin 1s linear infinite;
-    margin-bottom: 16px;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .loader-text {
-    font-size: 14px; font-weight: 500;
-    color: var(--muted2);
-    animation: fade 2s infinite;
-  }
-  @keyframes fade { 0%,100%{opacity:.5} 50%{opacity:1} }
+.shaka-video-container{
+width:100%;
+height:100%;
+}
 
-  /* TOP BAR */
-  #topBar {
-    position: fixed; top: 0; left: 0; right: 0;
-    z-index: 500;
-    padding: 12px 16px;
-    display: flex; align-items: center; gap: 12px;
-    background: linear-gradient(to bottom, rgba(0,0,0,.85) 0%, transparent 100%);
-    transition: opacity .3s;
-  }
-  #topBar.hide { opacity: 0; pointer-events: none; }
+video{
+width:100%;
+height:100%;
+object-fit:contain;
+background:#000;
+}
 
-  .back-btn {
-    width: 38px; height: 38px;
-    background: rgba(255,255,255,.1);
-    backdrop-filter: blur(6px);
-    border: 1px solid rgba(255,255,255,.12);
-    border-radius: 12px;
-    display: flex; align-items: center; justify-content: center;
-    text-decoration: none; color: #fff;
-    flex-shrink: 0;
-    cursor: pointer;
-  }
-  .back-btn .material-icons-round { font-size: 20px; }
-  .top-info { flex: 1; min-width: 0; }
-  .top-title {
-    font-family: 'Barlow Condensed', sans-serif;
-    font-size: 16px; font-weight: 800;
-    letter-spacing: 1px;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  }
-  .top-sub { font-size: 11px; color: var(--muted2); margin-top: 1px; }
-  .live-badge {
-    display: flex; align-items: center; gap: 5px;
-    background: var(--live); color: #fff;
-    border-radius: 20px; padding: 5px 10px;
-    font-size: 11px; font-weight: 700;
-    flex-shrink: 0;
-  }
-  .live-dot {
-    width: 6px; height: 6px;
-    background: #fff; border-radius: 50%;
-    animation: blink 1s infinite;
-  }
-  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+/* LOADING */
 
-  /* TELEGRAM SHEET */
-  #tgOverlay {
-    position: fixed; inset: 0;
-    background: rgba(0,0,0,.7);
-    backdrop-filter: blur(8px);
-    z-index: 2000;
-    display: flex; align-items: flex-end; justify-content: center;
-    padding: 16px;
-    opacity: 0; pointer-events: none;
-    transition: opacity .3s;
-  }
-  #tgOverlay.open { opacity: 1; pointer-events: all; }
-  .tg-sheet {
-    background: #0d1526;
-    border: 1px solid var(--border);
-    border-radius: 24px 24px 20px 20px;
-    width: 100%; max-width: 420px;
-    padding: 20px 20px 24px;
-    transform: translateY(60px);
-    transition: transform .35s cubic-bezier(.34,1.56,.64,1);
-  }
-  #tgOverlay.open .tg-sheet { transform: translateY(0); }
-  .tg-handle {
-    width: 36px; height: 4px;
-    background: var(--border);
-    border-radius: 10px; margin: 0 auto 18px;
-  }
-  .tg-row { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
-  .tg-icon-box {
-    width: 48px; height: 48px;
-    background: linear-gradient(135deg, #2563eb, #06b6d4);
-    border-radius: 14px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 22px; flex-shrink: 0;
-  }
-  .tg-info-title { font-size: 16px; font-weight: 700; }
-  .tg-info-sub { font-size: 12px; color: var(--muted2); margin-top: 2px; }
-  .tg-join {
-    width: 100%;
-    background: linear-gradient(135deg, #2563eb, #06b6d4);
-    border: none; border-radius: 14px; padding: 14px;
-    font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 700;
-    color: #fff; cursor: pointer;
-    display: flex; align-items: center; justify-content: center; gap: 8px;
-    margin-bottom: 10px;
-  }
-  .tg-skip {
-    width: 100%; background: transparent;
-    border: 1px solid var(--border); border-radius: 14px; padding: 12px;
-    font-family: 'Inter', sans-serif; font-size: 13px; font-weight: 500;
-    color: var(--muted); cursor: pointer;
-  }
+.loading-overlay{
+position:absolute;
+top:0;
+left:0;
+width:100%;
+height:100%;
+display:flex;
+align-items:center;
+justify-content:center;
+flex-direction:column;
+background:#000;
+color:#fff;
+z-index:2000;
+font-size:18px;
+}
+
+.spinner{
+border:4px solid rgba(255,255,255,.2);
+border-top:4px solid #3b82f6;
+border-radius:50%;
+width:40px;
+height:40px;
+animation:spin 1s linear infinite;
+margin-bottom:12px;
+}
+
+@keyframes spin{
+0%{transform:rotate(0deg)}
+100%{transform:rotate(360deg)}
+}
+
 </style>
+
 </head>
+
 <body>
 
-<!-- VIDEO -->
 <div class="video-container">
-  <div class="shaka-video-container" data-shaka-player>
-    <video id="video" autoplay playsinline muted></video>
-    <div id="loadingScreen">
-      <div class="loader-logo">
-        <div class="loader-logo-icon">
-          <span class="material-icons-round">sports_cricket</span>
-        </div>
-        <span class="loader-logo-text">CRICKLY</span>
-      </div>
-      <div class="spinner"></div>
-      <div class="loader-text">Connecting to stream…</div>
-    </div>
-  </div>
+
+<div class="shaka-video-container" data-shaka-player>
+
+<video id="video" autoplay playsinline muted></video>
+
+<div id="loading" class="loading-overlay">
+<div class="spinner"></div>
+Analyzing the video...
 </div>
 
-<!-- TOP BAR -->
-<div id="topBar">
-  <a href="index.html" class="back-btn">
-    <span class="material-icons-round">arrow_back</span>
-  </a>
-  <div class="top-info">
-    <div class="top-title">CRICKLY Live</div>
-    <div class="top-sub">FanCode Stream</div>
-  </div>
-  <div class="live-badge">
-    <div class="live-dot"></div>
-    LIVE
-  </div>
 </div>
 
-<!-- TELEGRAM SHEET -->
-<div id="tgOverlay">
-  <div class="tg-sheet">
-    <div class="tg-handle"></div>
-    <div class="tg-row">
-      <div class="tg-icon-box">📲</div>
-      <div>
-        <div class="tg-info-title">Stay Updated</div>
-        <div class="tg-info-sub">Get live match links & stream alerts</div>
-      </div>
-    </div>
-    <button class="tg-join" id="tgJoin">
-      <span class="material-icons-round">send</span>
-      Join Telegram Channel
-    </button>
-    <button class="tg-skip" id="tgSkip">Already a member</button>
-  </div>
 </div>
+
+
+<!-- TELEGRAM POPUP (USES YOUR CSS) -->
+
+<div id="telegramModal" class="modal hidden">
+
+<div class="modal-content">
+
+<h2>Join our Telegram</h2>
+
+<p>
+Stay updated with the latest
+<strong>Live Match Links</strong>
+and updates. Click below to join our official Telegram channel.
+</p>
+
+<button id="joinButton" class="btn">Join Telegram</button>
+
+<button id="closeButton" class="btn">Already Joined</button>
+
+</div>
+
+</div>
+
 
 <script>
-  // ── GET URL ──
-  const params = new URLSearchParams(window.location.search);
-  let streamUrl = '';
-  try { streamUrl = decodeURIComponent(params.get('url') || ''); } catch(e) {}
 
-  const video = document.getElementById('video');
-  const loadingScreen = document.getElementById('loadingScreen');
-  const topBar = document.getElementById('topBar');
+/* ================= STREAM ================= */
 
-  // ── AUTO-HIDE TOP BAR ──
-  let hideTimer;
-  function resetHide() {
-    topBar.classList.remove('hide');
-    clearTimeout(hideTimer);
-    hideTimer = setTimeout(() => topBar.classList.add('hide'), 4000);
-  }
-  document.addEventListener('touchstart', resetHide);
-  document.addEventListener('mousemove', resetHide);
-  resetHide();
+const params = new URLSearchParams(window.location.search);
+const encoded = params.get("data");
 
-  // ── PLAYER INIT ──
-  async function initPlayer() {
-    if (!streamUrl) { alert('Stream URL missing'); return; }
+let streamUrl = encoded ? atob(encoded) : "";
 
-    try {
-      const player = new shaka.Player(video);
-      const container = document.querySelector('.shaka-video-container');
-      const ui = new shaka.ui.Overlay(player, container, video);
 
-      ui.configure({
-        controlPanelElements: [
-          'play_pause', 'mute', 'time_and_duration',
-          'spacer', 'quality', 'language',
-          'picture_in_picture', 'fullscreen', 'overflow_menu'
-        ],
-        addSeekBar: true
-      });
+/* ================= PLAYER ================= */
 
-      player.configure({
-        streaming: { bufferingGoal: 10, rebufferingGoal: 2, bufferBehind: 30 }
-      });
+const video = document.getElementById("video");
+const loading = document.getElementById("loading");
 
-      await player.load(streamUrl);
+async function initPlayer(){
 
-      video.play().catch(() => { video.muted = true; video.play(); });
+if(!streamUrl){
+alert("Stream URL missing");
+return;
+}
 
-    } catch(e) {
-      console.log('Shaka error:', e);
-      // fallback to native
-      video.src = streamUrl;
-      video.play().catch(() => { video.muted = true; video.play(); });
-    }
+try{
 
-    video.addEventListener('playing', () => {
-      loadingScreen.classList.add('fade-out');
-      setTimeout(() => loadingScreen.style.display = 'none', 500);
-    });
-  }
+const player = new shaka.Player(video);
 
-  document.addEventListener('DOMContentLoaded', initPlayer);
+const container = document.querySelector(".shaka-video-container");
 
-  // ── TELEGRAM ──
-  const tgOverlay = document.getElementById('tgOverlay');
-  window.addEventListener('load', () => {
-    setTimeout(() => {
-      if (!sessionStorage.getItem('tgDismissed')) tgOverlay.classList.add('open');
-    }, 5000);
-  });
-  document.getElementById('tgJoin').onclick = () => {
-    window.open('https://telegram.me/+NSqV0ZHy3flhZmQ1', '_blank');
-    sessionStorage.setItem('tgDismissed', '1');
-    tgOverlay.classList.remove('open');
-  };
-  document.getElementById('tgSkip').onclick = () => {
-    sessionStorage.setItem('tgDismissed', '1');
-    tgOverlay.classList.remove('open');
-  };
-  tgOverlay.addEventListener('click', e => {
-    if (e.target === tgOverlay) {
-      sessionStorage.setItem('tgDismissed', '1');
-      tgOverlay.classList.remove('open');
-    }
-  });
+const ui = new shaka.ui.Overlay(player,container,video);
+
+ui.configure({
+
+controlPanelElements:[
+'play_pause',
+'mute',
+'time_and_duration',
+'spacer',
+'quality',
+'language',
+'picture_in_picture',
+'fullscreen',
+'overflow_menu'
+],
+
+addSeekBar:true
+
+});
+
+player.configure({
+streaming:{
+bufferingGoal:10,
+rebufferingGoal:2,
+bufferBehind:30
+}
+});
+
+await player.load(streamUrl);
+
+video.play().catch(()=>{
+video.muted=true;
+video.play();
+});
+
+video.addEventListener("playing",()=>{
+loading.style.display="none";
+});
+
+}
+
+catch(e){
+
+console.log("Shaka error:",e);
+
+video.src = streamUrl;
+
+video.play();
+
+video.addEventListener("playing",()=>{
+loading.style.display="none";
+});
+
+}
+
+}
+
+
+/* ================= TELEGRAM POPUP ================= */
+
+const modal = document.getElementById("telegramModal");
+const joinBtn = document.getElementById("joinButton");
+const closeBtn = document.getElementById("closeButton");
+
+/* SHOW POPUP EVERY PAGE LOAD */
+
+window.addEventListener("load",()=>{
+
+setTimeout(()=>{
+modal.classList.remove("hidden");
+},2000);
+
+});
+
+/* JOIN TELEGRAM */
+
+joinBtn.onclick=function(){
+
+window.open("https://telegram.me/+NSqV0ZHy3flhZmQ1","_blank");
+
+modal.classList.add("hidden");
+
+}
+
+/* CLOSE */
+
+closeBtn.onclick=function(){
+
+modal.classList.add("hidden");
+
+}
+
+
+/* INIT PLAYER */
+
+document.addEventListener("DOMContentLoaded",initPlayer);
+
 </script>
+
 </body>
 </html>
