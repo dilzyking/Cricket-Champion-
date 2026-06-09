@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="referrer" content="no-referrer">
+<title>CRICKLY Player</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Barlow+Condensed:wght@700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+
+<!-- Shaka Player -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.6.0/shaka-player.ui.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/shaka-player/4.6.0/controls.min.css">
+
+<style>
+  :root {
+    --bg:       #060a14;
+    --surface:  #0d1526;
+    --border:   #1e2d47;
+    --blue:     #3b82f6;
+    --text:     #f1f5f9;
+    --muted:    #64748b;
+    --muted2:   #94a3b8;
+    --live:     #ef4444;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    width: 100%; height: 100%;
+    background: #000;
+    font-family: 'Inter', sans-serif;
+    color: var(--text);
+    overflow: hidden;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* ── VIDEO LAYER ── */
+  #videoWrap {
+    position: fixed; inset: 0;
+    background: #000;
+    z-index: 1;
+  }
+
+  .shaka-video-container {
+    width: 100%; height: 100%;
+  }
+
+  video {
+    width: 100%; height: 100%;
+    object-fit: contain;
+    background: #000;
+    display: block;
+  }
+
+  /* Override Shaka controls to match theme */
+  .shaka-controls-container {
+    background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 100%) !important;
+  }
+  .shaka-controls-button-panel > * {
+    color: #fff !important;
+  }
+  .shaka-seek-bar-container {
+    --shaka-range-color: var(--blue) !important;
+  }
+  .shaka-range-element::-webkit-slider-thumb {
+    background: var(--blue) !important;
+  }
+  .shaka-spinner-svg circle {
+    stroke: var(--blue) !important;
+  }
+
+  /* ── TOP BAR ── */
+  #topBar {
+    position: fixed; top: 0; left: 0; right: 0;
+    z-index: 10;
+    padding: 12px 16px;
+    display: flex; align-items: center; gap: 12px;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.9) 0%, transparent 100%);
+    transition: opacity .3s;
+  }
+  #topBar.hide { opacity: 0; pointer-events: none; }
+
+  .back-btn {
+    width: 38px; height: 38px;
+    background: rgba(255,255,255,0.1);
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    text-decoration: none;
+    color: #fff;
+    flex-shrink: 0;
+    transition: .2s;
+  }
+  .back-btn:hover { background: rgba(255,255,255,0.18); }
+  .back-btn .material-icons-round { font-size: 20px; }
+
+  .top-info { flex: 1; min-width: 0; }
+  .top-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 16px; font-weight: 800;
+    letter-spacing: 1px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .top-sub {
+    font-size: 11px; color: var(--muted2);
+    font-weight: 500; margin-top: 1px;
+  }
+  .live-badge {
+    display: flex; align-items: center; gap: 5px;
+    background: var(--live);
+    color: #fff;
+    border-radius: 20px;
+    padding: 5px 10px;
+    font-size: 11px; font-weight: 700;
+    letter-spacing: 0.5px;
+    flex-shrink: 0;
+    animation: pulseBadge 2s infinite;
+  }
+  @keyframes pulseBadge {
+    0%,100% { box-shadow: 0 0 0 0 rgba(239,68,68,.5); }
+    50%      { box-shadow: 0 0 0 8px rgba(239,68,68,0); }
+  }
+  .live-dot {
+    width: 6px; height: 6px;
+    background: #fff; border-radius: 50%;
+    animation: blink 1s infinite;
+  }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+  /* ── LOADING SCREEN ── */
+  #loadingScreen {
+    position: fixed; inset: 0;
+    background: var(--bg);
+    z-index: 1000;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 0;
+    transition: opacity .5s;
+  }
+  #loadingScreen.fade-out {
+    opacity: 0; pointer-events: none;
+  }
+  .loader-logo {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 40px;
+  }
+  .loader-logo-icon {
+    width: 44px; height: 44px;
+    background: linear-gradient(135deg, #3b82f6, #6366f1);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .loader-logo-icon .material-icons-round { font-size: 24px; color: #fff; }
+  .loader-logo-text {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 28px; font-weight: 800;
+    letter-spacing: 3px;
+  }
+  .loader-ring {
+    position: relative;
+    width: 70px; height: 70px;
+    margin-bottom: 20px;
+  }
+  .loader-ring svg {
+    transform: rotate(-90deg);
+    width: 70px; height: 70px;
+  }
+  .loader-ring .track {
+    fill: none; stroke: #1e2d47; stroke-width: 4;
+  }
+  .loader-ring .progress {
+    fill: none; stroke: var(--blue); stroke-width: 4;
+    stroke-linecap: round;
+    stroke-dasharray: 188;
+    animation: ringAnim 1.4s ease-in-out infinite;
+  }
+  @keyframes ringAnim {
+    0%   { stroke-dashoffset: 188; }
+    50%  { stroke-dashoffset: 30; }
+    100% { stroke-dashoffset: 188; }
+  }
+  .loader-text {
+    font-size: 14px; font-weight: 500;
+    color: var(--muted2);
+    letter-spacing: 0.5px;
+    animation: loadTextFade 2s infinite;
+  }
+  @keyframes loadTextFade {
+    0%,100%{opacity:.5} 50%{opacity:1}
+  }
+  .loader-url {
+    font-size: 10px; color: var(--muted);
+    margin-top: 10px;
+    max-width: 260px; text-align: center;
+    overflow: hidden; text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* ── ERROR SCREEN ── */
+  #errorScreen {
+    position: fixed; inset: 0;
+    background: var(--bg);
+    z-index: 1000;
+    display: none;
+    flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 0; padding: 24px;
+    text-align: center;
+  }
+  #errorScreen.show { display: flex; }
+  .error-icon {
+    width: 64px; height: 64px;
+    background: rgba(239,68,68,0.1);
+    border: 1px solid rgba(239,68,68,0.2);
+    border-radius: 20px;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 20px;
+  }
+  .error-icon .material-icons-round { font-size: 32px; color: var(--live); }
+  .error-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 24px; font-weight: 800;
+    margin-bottom: 8px;
+  }
+  .error-sub {
+    font-size: 13px; color: var(--muted2);
+    line-height: 1.6; margin-bottom: 28px;
+    max-width: 280px;
+  }
+  .retry-btn {
+    background: var(--blue);
+    border: none; border-radius: 14px;
+    padding: 13px 32px;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px; font-weight: 700;
+    color: #fff;
+    cursor: pointer;
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 12px;
+    transition: .2s;
+  }
+  .retry-btn:hover { background: #2563eb; transform: translateY(-1px); }
+  .back-home-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 12px 32px;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px; font-weight: 600;
+    color: var(--muted2);
+    cursor: pointer;
+    display: flex; align-items: center; gap: 8px;
+    transition: .2s;
+  }
+  .back-home-btn:hover { border-color: var(--blue); color: var(--text); }
+
+  /* ── TELEGRAM SHEET ── */
+  #tgOverlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.7);
+    backdrop-filter: blur(8px);
+    z-index: 2000;
+    display: flex; align-items: flex-end; justify-content: center;
+    padding: 16px;
+    opacity: 0; pointer-events: none;
+    transition: opacity .3s;
+  }
+  #tgOverlay.open {
+    opacity: 1; pointer-events: all;
+  }
+  .tg-sheet {
+    background: #0d1526;
+    border: 1px solid var(--border);
+    border-radius: 24px 24px 20px 20px;
+    width: 100%; max-width: 420px;
+    padding: 20px 20px 24px;
+    transform: translateY(60px);
+    transition: transform .35s cubic-bezier(.34,1.56,.64,1);
+  }
+  #tgOverlay.open .tg-sheet {
+    transform: translateY(0);
+  }
+  .tg-handle {
+    width: 36px; height: 4px;
+    background: var(--border);
+    border-radius: 10px;
+    margin: 0 auto 18px;
+  }
+  .tg-row {
+    display: flex; align-items: center; gap: 14px;
+    margin-bottom: 14px;
+  }
+  .tg-icon-box {
+    width: 48px; height: 48px;
+    background: linear-gradient(135deg, #2563eb, #06b6d4);
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    font-size: 22px;
+  }
+  .tg-info-title {
+    font-size: 16px; font-weight: 700;
+  }
+  .tg-info-sub {
+    font-size: 12px; color: var(--muted2);
+    margin-top: 2px;
+  }
+  .tg-join {
+    width: 100%;
+    background: linear-gradient(135deg, #2563eb, #06b6d4);
+    border: none; border-radius: 14px;
+    padding: 14px;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px; font-weight: 700;
+    color: #fff; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    margin-bottom: 10px;
+    transition: .2s;
+  }
+  .tg-join:hover { opacity: .9; transform: translateY(-1px); }
+  .tg-skip {
+    width: 100%;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 12px;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px; font-weight: 500;
+    color: var(--muted); cursor: pointer;
+    transition: .2s;
+  }
+  .tg-skip:hover { border-color: var(--muted2); color: var(--text); }
+
+  /* ── BUFFERING OVERLAY ── */
+  #bufferingOverlay {
+    position: fixed; inset: 0;
+    z-index: 5;
+    display: flex; align-items: center; justify-content: center;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity .3s;
+  }
+  #bufferingOverlay.show { opacity: 1; }
+  .buffer-ring {
+    width: 52px; height: 52px;
+    border: 3px solid rgba(255,255,255,.1);
+    border-top-color: var(--blue);
+    border-radius: 50%;
+    animation: spin .8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<!-- VIDEO LAYER -->
+<div id="videoWrap">
+  <div class="shaka-video-container" data-shaka-player-container>
+    <video id="video" autoplay playsinline muted></video>
+  </div>
+</div>
+
+<!-- BUFFERING -->
+<div id="bufferingOverlay">
+  <div class="buffer-ring"></div>
+</div>
+
+<!-- TOP BAR -->
+<div id="topBar">
+  <a href="index.html" class="back-btn">
+    <span class="material-icons-round">arrow_back</span>
+  </a>
+  <div class="top-info">
+    <div class="top-title" id="topTitle">CRICKLY Live</div>
+    <div class="top-sub" id="topSub">FanCode Stream</div>
+  </div>
+  <div class="live-badge">
+    <div class="live-dot"></div>
+    LIVE
+  </div>
+</div>
+
+<!-- LOADING SCREEN -->
+<div id="loadingScreen">
+  <div class="loader-logo">
+    <div class="loader-logo-icon">
+      <span class="material-icons-round">sports_cricket</span>
+    </div>
+    <span class="loader-logo-text">CRICKLY</span>
+  </div>
+  <div class="loader-ring">
+    <svg viewBox="0 0 60 60">
+      <circle class="track" cx="30" cy="30" r="26"/>
+      <circle class="progress" cx="30" cy="30" r="26" stroke-dashoffset="188"/>
+    </svg>
+  </div>
+  <div class="loader-text" id="loaderText">Connecting to stream…</div>
+  <div class="loader-url" id="loaderUrl"></div>
+</div>
+
+<!-- ERROR SCREEN -->
+<div id="errorScreen">
+  <div class="error-icon">
+    <span class="material-icons-round">signal_wifi_bad</span>
+  </div>
+  <div class="error-title">Stream Unavailable</div>
+  <div class="error-sub" id="errorSub">
+    Could not connect to the stream. The match may have ended or try a different CDN quality.
+  </div>
+  <button class="retry-btn" onclick="retryStream()">
+    <span class="material-icons-round">refresh</span>
+    Retry
+  </button>
+  <a href="index.html" class="back-home-btn">
+    <span class="material-icons-round">home</span>
+    Back to Matches
+  </a>
+</div>
+
+<!-- TELEGRAM SHEET -->
+<div id="tgOverlay">
+  <div class="tg-sheet">
+    <div class="tg-handle"></div>
+    <div class="tg-row">
+      <div class="tg-icon-box">📲</div>
+      <div>
+        <div class="tg-info-title">Stay Updated</div>
+        <div class="tg-info-sub">Get live match links & stream alerts</div>
+      </div>
+    </div>
+    <button class="tg-join" id="tgJoin">
+      <span class="material-icons-round">send</span>
+      Join Telegram Channel
+    </button>
+    <button class="tg-skip" id="tgSkip">Already a member</button>
+  </div>
+</div>
+
+<script>
+// ── PARAMS ──
+const params  = new URLSearchParams(window.location.search);
+const encoded = params.get('data');
+let streamUrl = '';
+try { streamUrl = encoded ? atob(decodeURIComponent(encoded)) : ''; } catch(e) {}
+
+// ── ELEMENTS ──
+const video           = document.getElementById('video');
+const loadingScreen   = document.getElementById('loadingScreen');
+const errorScreen     = document.getElementById('errorScreen');
+const loaderText      = document.getElementById('loaderText');
+const loaderUrl       = document.getElementById('loaderUrl');
+const topBar          = document.getElementById('topBar');
+const bufferingOverlay= document.getElementById('bufferingOverlay');
+
+// Show URL hint
+if (streamUrl) loaderUrl.textContent = streamUrl.split('/').slice(-2).join('/');
+
+// ── AUTO-HIDE TOP BAR ──
+let hideTimer;
+function resetHide() {
+  topBar.classList.remove('hide');
+  clearTimeout(hideTimer);
+  hideTimer = setTimeout(() => topBar.classList.add('hide'), 4000);
+}
+document.addEventListener('touchstart', resetHide);
+document.addEventListener('mousemove', resetHide);
+resetHide();
+
+// ── BUFFERING INDICATOR ──
+video.addEventListener('waiting',  () => bufferingOverlay.classList.add('show'));
+video.addEventListener('playing',  () => bufferingOverlay.classList.remove('show'));
+video.addEventListener('canplay',  () => bufferingOverlay.classList.remove('show'));
+
+// ── PLAYER ──
+let shakaPlayer = null;
+
+const LOADER_MSGS = [
+  'Connecting to stream…',
+  'Fetching live feed…',
+  'Buffering first frames…',
+  'Almost ready…'
+];
+let msgIdx = 0;
+const msgTimer = setInterval(() => {
+  msgIdx = (msgIdx + 1) % LOADER_MSGS.length;
+  loaderText.textContent = LOADER_MSGS[msgIdx];
+}, 1800);
+
+async function initPlayer() {
+  if (!streamUrl) {
+    showError('No stream URL provided. Please go back and select a match.');
+    return;
+  }
+
+  try {
+    shakaPlayer = new shaka.Player(video);
+    const container = document.querySelector('.shaka-video-container');
+    const ui = new shaka.ui.Overlay(shakaPlayer, container, video);
+
+    ui.configure({
+      controlPanelElements: [
+        'play_pause', 'mute', 'time_and_duration',
+        'spacer', 'quality', 'language',
+        'picture_in_picture', 'fullscreen', 'overflow_menu'
+      ],
+      addSeekBar: true,
+      seekBarColors: {
+        base:    'rgba(255,255,255,0.2)',
+        buffered:'rgba(255,255,255,0.4)',
+        played:  '#3b82f6'
+      }
+    });
+
+    shakaPlayer.configure({
+      streaming: {
+        bufferingGoal: 12,
+        rebufferingGoal: 2,
+        bufferBehind: 30,
+        stallEnabled: true,
+        stallThreshold: 1,
+        stallSkip: 0.1
+      }
+    });
+
+    shakaPlayer.addEventListener('error', e => {
+      console.warn('Shaka error', e.detail);
+      fallbackNative();
+    });
+
+    await shakaPlayer.load(streamUrl);
+
+    try { await video.play(); }
+    catch { video.muted = true; await video.play(); }
+
+  } catch(e) {
+    console.warn('Shaka init failed:', e);
+    fallbackNative();
+  }
+}
+
+function fallbackNative() {
+  loaderText.textContent = 'Switching to native player…';
+  if (shakaPlayer) { try { shakaPlayer.destroy(); } catch(e){} }
+  video.src = streamUrl;
+  video.load();
+  video.play().catch(() => { video.muted = true; video.play(); });
+}
+
+video.addEventListener('playing', onPlaying);
+video.addEventListener('error', () => showError());
+
+function onPlaying() {
+  clearInterval(msgTimer);
+  loadingScreen.classList.add('fade-out');
+  setTimeout(() => { loadingScreen.style.display = 'none'; }, 500);
+  resetHide();
+}
+
+function showError(msg) {
+  clearInterval(msgTimer);
+  loadingScreen.style.display = 'none';
+  errorScreen.classList.add('show');
+  if (msg) document.getElementById('errorSub').textContent = msg;
+}
+
+function retryStream() {
+  errorScreen.classList.remove('show');
+  loadingScreen.style.display = 'flex';
+  loadingScreen.classList.remove('fade-out');
+  loaderText.textContent = 'Retrying stream…';
+  initPlayer();
+}
+
+document.addEventListener('DOMContentLoaded', initPlayer);
+
+// ── TELEGRAM SHEET ──
+const tgOverlay = document.getElementById('tgOverlay');
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    if (!sessionStorage.getItem('tgDismissed')) {
+      tgOverlay.classList.add('open');
+    }
+  }, 5000);
+});
+document.getElementById('tgJoin').onclick = () => {
+  window.open('https://telegram.me/+NSqV0ZHy3flhZmQ1', '_blank');
+  sessionStorage.setItem('tgDismissed','1');
+  tgOverlay.classList.remove('open');
+};
+document.getElementById('tgSkip').onclick = () => {
+  sessionStorage.setItem('tgDismissed','1');
+  tgOverlay.classList.remove('open');
+};
+tgOverlay.addEventListener('click', e => {
+  if (e.target === tgOverlay) {
+    sessionStorage.setItem('tgDismissed','1');
+    tgOverlay.classList.remove('open');
+  }
+});
+</script>
+</body>
+</html>
