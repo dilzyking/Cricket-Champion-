@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CRICKLY — FanCode Live</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Barlow+Condensed:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+<style>
+  :root {
+    --bg-deep:    #060a14;
+    --bg-card:    #0d1526;
+    --bg-card2:   #111d34;
+    --border:     #1e2d47;
+    --border-glow:#2563eb44;
+    --live-red:   #ef4444;
+    --blue:       #3b82f6;
+    --blue-dark:  #1d4ed8;
+    --text:       #f1f5f9;
+    --muted:      #64748b;
+    --muted2:     #94a3b8;
+    --green:      #22c55e;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg-deep);
+    font-family: 'Inter', sans-serif;
+    color: var(--text);
+    min-height: 100vh;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* ── NOISE TEXTURE OVERLAY ── */
+  body::before {
+    content:'';
+    position:fixed; inset:0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── HEADER ── */
+  .header {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(6,10,20,0.85);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 20px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .logo {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .logo-icon {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, #3b82f6, #6366f1);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+  .logo-text {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 22px; font-weight: 800;
+    letter-spacing: 2px;
+    color: #fff;
+  }
+  .logo-sub {
+    font-size: 10px; font-weight: 500;
+    color: var(--muted); letter-spacing: 3px;
+    text-transform: uppercase;
+    line-height: 1;
+    margin-top: 1px;
+  }
+  .header-right {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .live-pill {
+    display: flex; align-items: center; gap: 5px;
+    background: rgba(239,68,68,0.12);
+    border: 1px solid rgba(239,68,68,0.3);
+    border-radius: 20px;
+    padding: 5px 12px;
+    font-size: 11px; font-weight: 700;
+    color: var(--live-red);
+    letter-spacing: 1px;
+  }
+  .live-dot {
+    width: 6px; height: 6px;
+    background: var(--live-red);
+    border-radius: 50%;
+    animation: pulse 1s infinite;
+  }
+  @keyframes pulse {
+    0%,100%{opacity:1;transform:scale(1);}
+    50%{opacity:.4;transform:scale(1.3);}
+  }
+
+  /* ── TABS ── */
+  .tabs {
+    display: flex; gap: 6px;
+    padding: 16px 20px 0;
+    position: relative; z-index: 1;
+  }
+  .tab-btn {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 30px;
+    padding: 7px 16px;
+    font-size: 12px; font-weight: 600;
+    color: var(--muted2);
+    cursor: pointer;
+    transition: .2s;
+    white-space: nowrap;
+  }
+  .tab-btn.active {
+    background: var(--blue);
+    border-color: var(--blue);
+    color: #fff;
+  }
+  .tab-btn:hover:not(.active) {
+    border-color: var(--blue);
+    color: var(--text);
+  }
+
+  /* ── GRID ── */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 20px;
+    padding: 20px;
+    position: relative; z-index: 1;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  /* ── CARD ── */
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform .25s, border-color .25s, box-shadow .25s;
+    display: flex; flex-direction: column;
+  }
+  .card:hover {
+    transform: translateY(-4px);
+    border-color: #3b82f640;
+    box-shadow: 0 20px 40px rgba(59,130,246,0.12), 0 0 0 1px #3b82f620;
+  }
+  .card.live-card {
+    border-color: rgba(239,68,68,0.25);
+  }
+  .card.live-card:hover {
+    border-color: rgba(239,68,68,0.5);
+    box-shadow: 0 20px 40px rgba(239,68,68,0.1), 0 0 0 1px rgba(239,68,68,0.2);
+  }
+
+  /* ── BANNER (top 40% image) ── */
+  .card-banner {
+    position: relative;
+    height: 180px;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .card-banner img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    object-position: top center;
+    display: block;
+  }
+  .banner-gradient {
+    position: absolute; inset: 0;
+    background: linear-gradient(to bottom, rgba(0,0,0,0) 30%, rgba(13,21,38,1) 100%);
+  }
+  .banner-top {
+    position: absolute; top: 10px; left: 10px; right: 10px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+
+  /* ── STATUS BADGE ── */
+  .badge-live {
+    display: flex; align-items: center; gap: 5px;
+    background: var(--live-red);
+    color: #fff;
+    border-radius: 20px;
+    padding: 4px 10px;
+    font-size: 11px; font-weight: 700;
+    letter-spacing: 0.5px;
+    animation: pulseBadge 2s infinite;
+  }
+  @keyframes pulseBadge {
+    0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.5);}
+    50%{box-shadow:0 0 0 6px rgba(239,68,68,0);}
+  }
+  .badge-scheduled {
+    display: flex; align-items: center; gap: 5px;
+    background: rgba(0,0,0,0.55);
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: #cbd5e1;
+    border-radius: 20px;
+    padding: 4px 10px;
+    font-size: 11px; font-weight: 600;
+  }
+  .badge-live .material-icons-round,
+  .badge-scheduled .material-icons-round {
+    font-size: 10px;
+  }
+  .cat-badge {
+    background: rgba(0,0,0,0.55);
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: var(--muted2);
+    border-radius: 20px;
+    padding: 4px 10px;
+    font-size: 10px; font-weight: 600;
+    letter-spacing: 1px;
+  }
+
+  /* ── BODY ── */
+  .card-body {
+    padding: 14px 16px 16px;
+    display: flex; flex-direction: column; flex: 1;
+  }
+  .match-title {
+    font-size: 14px; font-weight: 700;
+    color: var(--text);
+    line-height: 1.3;
+    margin-bottom: 3px;
+  }
+  .tournament-name {
+    font-size: 11px; font-weight: 500;
+    color: var(--muted);
+    letter-spacing: 0.3px;
+    display: flex; align-items: center; gap: 4px;
+  }
+  .tournament-name .material-icons-round { font-size: 12px; }
+
+  /* ── TEAMS ROW ── */
+  .teams-row {
+    display: flex; align-items: center; justify-content: space-between;
+    margin: 14px 0 12px;
+    gap: 8px;
+  }
+  .team {
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    flex: 1;
+  }
+  .team-flag {
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--border);
+  }
+  .team-name {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 15px; font-weight: 700;
+    letter-spacing: 1px;
+    text-align: center;
+    text-transform: uppercase;
+  }
+
+  /* ── SCORE BOX ── */
+  .score-box {
+    background: var(--bg-card2);
+    border-radius: 12px;
+    padding: 8px 14px;
+    text-align: center;
+    min-width: 80px;
+  }
+  .score-runs {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 22px; font-weight: 800;
+    color: #fff;
+    line-height: 1;
+  }
+  .score-overs {
+    font-size: 10px; font-weight: 500;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+  .vs-dot {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 16px; font-weight: 700;
+    color: var(--muted);
+    text-align: center;
+    flex-shrink: 0;
+    padding: 0 4px;
+  }
+  .batting-indicator {
+    width: 6px; height: 6px;
+    background: var(--green);
+    border-radius: 50%;
+    margin: 0 auto;
+    animation: pulse 1.5s infinite;
+    margin-top: -4px;
+  }
+
+  /* ── TIME ROW ── */
+  .time-row {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 11px; color: var(--muted2);
+    font-weight: 500;
+  }
+  .time-row .material-icons-round { font-size: 13px; }
+
+  /* ── DIVIDER ── */
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 12px 0;
+  }
+
+  /* ── WATCH BTN ── */
+  .watch-btn {
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    background: linear-gradient(135deg, #2563eb, #3b82f6);
+    border: none; border-radius: 12px;
+    padding: 11px;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px; font-weight: 700;
+    color: #fff;
+    cursor: pointer;
+    letter-spacing: 0.5px;
+    transition: .2s;
+    width: 100%;
+    margin-top: auto;
+  }
+  .watch-btn:hover { background: linear-gradient(135deg, #1d4ed8, #2563eb); transform: translateY(-1px); }
+  .watch-btn .material-icons-round { font-size: 16px; }
+
+  .scheduled-btn {
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    background: var(--bg-card2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 11px;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px; font-weight: 600;
+    color: var(--muted);
+    pointer-events: none;
+    width: 100%;
+    margin-top: auto;
+    letter-spacing: 0.5px;
+  }
+  .scheduled-btn .material-icons-round { font-size: 16px; }
+
+  /* ── QUALITY MODAL ── */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.75);
+    backdrop-filter: blur(8px);
+    z-index: 9999;
+    display: flex; align-items: flex-end; justify-content: center;
+    padding: 20px;
+    opacity: 0; pointer-events: none;
+    transition: opacity .25s;
+  }
+  .modal-overlay.open {
+    opacity: 1; pointer-events: all;
+  }
+  .modal-sheet {
+    background: #0f1928;
+    border: 1px solid var(--border);
+    border-radius: 24px 24px 20px 20px;
+    width: 100%; max-width: 480px;
+    padding: 24px 20px 20px;
+    transform: translateY(40px);
+    transition: transform .3s cubic-bezier(.34,1.56,.64,1);
+  }
+  .modal-overlay.open .modal-sheet {
+    transform: translateY(0);
+  }
+  .modal-handle {
+    width: 40px; height: 4px;
+    background: var(--border);
+    border-radius: 10px;
+    margin: 0 auto 20px;
+  }
+  .modal-title {
+    font-size: 16px; font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .modal-sub {
+    font-size: 12px; color: var(--muted);
+    margin-bottom: 18px;
+  }
+  .quality-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .quality-chip {
+    background: var(--bg-card2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 8px;
+    text-align: center;
+    cursor: pointer;
+    transition: .2s;
+  }
+  .quality-chip:hover {
+    background: var(--blue);
+    border-color: var(--blue);
+    transform: scale(1.04);
+  }
+  .quality-chip .q-res {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 20px; font-weight: 800;
+    color: #fff;
+    display: block;
+  }
+  .quality-chip .q-bw {
+    font-size: 10px; color: var(--muted);
+    display: block; margin-top: 2px;
+  }
+  .quality-chip:hover .q-bw { color: rgba(255,255,255,0.7); }
+  .modal-close {
+    width: 100%;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px; font-weight: 600;
+    color: var(--muted2);
+    cursor: pointer;
+    transition: .2s;
+  }
+  .modal-close:hover { border-color: var(--live-red); color: var(--live-red); }
+
+  /* ── CDN SELECTOR ── */
+  .cdn-row {
+    display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap;
+  }
+  .cdn-chip {
+    background: var(--bg-card2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 5px 10px;
+    font-size: 10px; font-weight: 600;
+    color: var(--muted2);
+    cursor: pointer;
+    transition: .15s;
+    letter-spacing: 0.5px;
+  }
+  .cdn-chip.active {
+    background: rgba(59,130,246,0.15);
+    border-color: var(--blue);
+    color: var(--blue);
+  }
+
+  /* ── TELEGRAM MODAL ── */
+  .tg-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,.8);
+    backdrop-filter: blur(10px);
+    z-index: 9998;
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px;
+  }
+  .tg-overlay.hidden { display: none; }
+  .tg-card {
+    background: linear-gradient(145deg, #0d1526, #111d34);
+    border: 1px solid #1e3a5f;
+    border-radius: 24px;
+    padding: 32px 24px 24px;
+    width: 100%; max-width: 380px;
+    text-align: center;
+  }
+  .tg-icon {
+    width: 64px; height: 64px;
+    background: linear-gradient(135deg, #2563eb, #06b6d4);
+    border-radius: 18px;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 18px;
+    font-size: 32px;
+  }
+  .tg-title {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 26px; font-weight: 800;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+  .tg-desc {
+    font-size: 13px; color: var(--muted2);
+    line-height: 1.6;
+    margin-bottom: 24px;
+  }
+  .tg-join-btn {
+    width: 100%;
+    background: linear-gradient(135deg, #2563eb, #06b6d4);
+    border: none; border-radius: 14px;
+    padding: 14px;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px; font-weight: 700;
+    color: #fff;
+    cursor: pointer;
+    margin-bottom: 10px;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    transition: .2s;
+  }
+  .tg-join-btn:hover { opacity: .9; transform: translateY(-1px); }
+  .tg-skip-btn {
+    width: 100%;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 12px;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px; font-weight: 500;
+    color: var(--muted);
+    cursor: pointer;
+    transition: .2s;
+  }
+  .tg-skip-btn:hover { border-color: var(--muted); color: var(--text); }
+
+  /* ── EMPTY / LOADING ── */
+  .loader-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 20px;
+    padding: 20px;
+    max-width: 1400px; margin: 0 auto;
+  }
+  .skeleton {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    height: 380px;
+    animation: shimmer 1.4s infinite;
+  }
+  @keyframes shimmer {
+    0%,100%{opacity:1;} 50%{opacity:.4;}
+  }
+
+  /* ── STATS BAR ── */
+  .stats-bar {
+    display: flex; align-items: center; gap: 16px;
+    padding: 10px 20px;
+    border-bottom: 1px solid var(--border);
+    position: relative; z-index: 1;
+    font-size: 12px; color: var(--muted);
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  .stats-bar span { display: flex; align-items: center; gap: 4px; }
+  .stats-bar .material-icons-round { font-size: 14px; }
+  .stat-live { color: var(--live-red); font-weight: 600; }
+  .stat-up { color: var(--blue); font-weight: 600; }
+
+  /* ── SECTION LABEL ── */
+  .section-label {
+    padding: 16px 20px 4px;
+    font-size: 11px; font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    position: relative; z-index: 1;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .section-label::after {
+    content:''; flex: 1; height: 1px;
+    background: linear-gradient(to right, var(--border), transparent);
+  }
+
+  @media (max-width: 400px) {
+    .quality-grid { grid-template-columns: repeat(2, 1fr); }
+    .teams-row { margin: 10px 0 8px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="logo">
+    <div class="logo-icon">
+      <span class="material-icons-round" style="color:#fff;font-size:20px">sports_cricket</span>
+    </div>
+    <div>
+      <div class="logo-text">CRICKLY</div>
+      <div class="logo-sub">FanCode Live</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="live-pill" id="livePill">
+      <div class="live-dot"></div>
+      <span id="liveCount">0 LIVE</span>
+    </div>
+  </div>
+</header>
+
+<!-- STATS BAR -->
+<div class="stats-bar" id="statsBar" style="display:none">
+  <span><span class="material-icons-round stat-live">fiber_manual_record</span> <span id="sb-live" class="stat-live">–</span> live now</span>
+  <span style="color:var(--border)">|</span>
+  <span><span class="material-icons-round" style="color:var(--blue)">schedule</span> <span id="sb-up" class="stat-up">–</span> upcoming</span>
+  <span style="color:var(--border)">|</span>
+  <span><span class="material-icons-round">sports_cricket</span> <span id="sb-total">–</span> total</span>
+  <span style="color:var(--border)">|</span>
+  <span><span class="material-icons-round">update</span> <span id="sb-updated">–</span></span>
+</div>
+
+<!-- TABS -->
+<div class="tabs" id="tabsRow" style="display:none">
+  <button class="tab-btn active" onclick="filterMatches('all',this)">All Matches</button>
+  <button class="tab-btn" onclick="filterMatches('live',this)">
+    🔴 Live
+  </button>
+  <button class="tab-btn" onclick="filterMatches('upcoming',this)">Upcoming</button>
+  <button class="tab-btn" onclick="filterMatches('cricket',this)">Cricket</button>
+</div>
+
+<!-- MATCHES CONTAINER -->
+<div id="matchesRoot"></div>
+
+<!-- QUALITY MODAL -->
+<div class="modal-overlay" id="qualityModal">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Select Stream Quality</div>
+    <div class="modal-sub" id="qualModalSub">Choose your preferred quality</div>
+    <div class="cdn-row" id="cdnRow"></div>
+    <div class="quality-grid" id="qualityGrid"></div>
+    <button class="modal-close" onclick="closeQuality()">
+      <span class="material-icons-round" style="font-size:14px;vertical-align:middle;margin-right:4px">close</span>
+      Cancel
+    </button>
+  </div>
+</div>
+
+<!-- TELEGRAM MODAL -->
+<div class="tg-overlay" id="tgModal">
+  <div class="tg-card">
+    <div class="tg-icon">📲</div>
+    <div class="tg-title">Stay in the Loop</div>
+    <p class="tg-desc">
+      Get instant notifications for <strong style="color:#f1f5f9">live match links</strong>,
+      stream updates, and exclusive content on our Telegram channel.
+    </p>
+    <button class="tg-join-btn" id="tgJoinBtn">
+      <span class="material-icons-round">send</span>
+      Join Telegram Channel
+    </button>
+    <button class="tg-skip-btn" id="tgSkipBtn">Already a member</button>
+  </div>
+</div>
+
+<script>
+const DATA_URL = 'https://raw.githubusercontent.com/doctor-8trange/zyphx8/refs/heads/main/data/fancode.json';
+const PLAYER_URL = 'fcplayer.html?url=';
+
+let allMatches = [];
+let currentFilter = 'all';
+let activeMatchIndex = -1;
+let currentCdnUrls = {};
+let selectedCdn = 'primary';
+
+// ── TELEGRAM ──
+const tgModal = document.getElementById('tgModal');
+window.addEventListener('load', () => {
+  if (!sessionStorage.getItem('tgDismissed')) tgModal.classList.remove('hidden');
+});
+document.getElementById('tgJoinBtn').onclick = () => {
+  window.open('https://telegram.me/+NSqV0ZHy3flhZmQ1','_blank');
+  sessionStorage.setItem('tgDismissed','1');
+  tgModal.classList.add('hidden');
+};
+document.getElementById('tgSkipBtn').onclick = () => {
+  sessionStorage.setItem('tgDismissed','1');
+  tgModal.classList.add('hidden');
+};
+
+// ── FETCH ──
+fetch(DATA_URL)
+  .then(r => r.json())
+  .then(data => {
+    allMatches = (data.matches || []).sort((a,b) => {
+      const al = (a.status||'').toUpperCase()==='LIVE', bl = (b.status||'').toUpperCase()==='LIVE';
+      return bl - al;
+    });
+
+    const live = allMatches.filter(m => (m.status||'').toUpperCase()==='LIVE').length;
+    document.getElementById('liveCount').textContent = live + ' LIVE';
+    document.getElementById('sb-live').textContent = data.live_matches ?? live;
+    document.getElementById('sb-up').textContent = data.upcoming_matches ?? '';
+    document.getElementById('sb-total').textContent = data.total_matches ?? allMatches.length;
+    document.getElementById('sb-updated').textContent = data.last_updated ? 'Updated ' + data.last_updated : '';
+    document.getElementById('statsBar').style.display = 'flex';
+    document.getElementById('tabsRow').style.display = 'flex';
+
+    renderMatches(allMatches);
+  })
+  .catch(() => {
+    document.getElementById('matchesRoot').innerHTML =
+      `<p style="text-align:center;padding:40px;color:var(--muted)">
+        <span class="material-icons-round" style="display:block;font-size:48px;margin-bottom:12px">wifi_off</span>
+        Failed to load matches
+      </p>`;
+  });
+
+// ── RENDER ──
+function renderMatches(matches) {
+  const root = document.getElementById('matchesRoot');
+  root.innerHTML = '';
+
+  const live = matches.filter(m => (m.status||'').toUpperCase()==='LIVE');
+  const upcoming = matches.filter(m => (m.status||'').toUpperCase()!=='LIVE');
+
+  if (matches.length === 0) {
+    root.innerHTML = `<p style="text-align:center;padding:40px;color:var(--muted)">No matches found</p>`;
+    return;
+  }
+
+  if (live.length) {
+    root.innerHTML += `<div class="section-label"><span class="material-icons-round" style="color:var(--live-red);font-size:14px">fiber_manual_record</span> Live Now</div>`;
+    const g = document.createElement('div'); g.className = 'grid';
+    live.forEach(m => g.appendChild(buildCard(m, allMatches.indexOf(m))));
+    root.appendChild(g);
+  }
+
+  if (upcoming.length) {
+    root.innerHTML += `<div class="section-label"><span class="material-icons-round" style="font-size:14px;color:var(--blue)">schedule</span> Upcoming</div>`;
+    const g = document.createElement('div'); g.className = 'grid';
+    upcoming.forEach(m => g.appendChild(buildCard(m, allMatches.indexOf(m))));
+    root.appendChild(g);
+  }
+}
+
+function buildCard(m, index) {
+  const isLive = (m.status||'').toUpperCase() === 'LIVE';
+  const teams = m.team || [];
+  const t1 = teams[0] || {}, t2 = teams[1] || {};
+  const score1 = (t1.cricketScore || [])[0];
+  const score2 = (t2.cricketScore || [])[0];
+  const hasBatting = score1 || score2;
+  const t1Bat = t1.status?.cricket?.isBatting;
+  const t2Bat = t2.status?.cricket?.isBatting;
+
+  const card = document.createElement('div');
+  card.className = 'card' + (isLive ? ' live-card' : '');
+
+  const img = m.image || m.image_cdn?.APP || 'https://www.fancode.com/skillup-uploads/cms-media/Cricket_Fallback_Old_match-card.jpg';
+
+  card.innerHTML = `
+    <div class="card-banner">
+      <img src="${img}" loading="lazy" onerror="this.src='https://www.fancode.com/skillup-uploads/cms-media/Cricket_Fallback_Old_match-card.jpg'">
+      <div class="banner-gradient"></div>
+      <div class="banner-top">
+        ${isLive
+          ? `<span class="badge-live"><span class="material-icons-round">fiber_manual_record</span>LIVE</span>`
+          : `<span class="badge-scheduled"><span class="material-icons-round">event</span>UPCOMING</span>`}
+        <span class="cat-badge">${m.category||'CRICKET'}</span>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="match-title">${m.title || 'Match'}</div>
+      <div class="tournament-name">
+        <span class="material-icons-round">emoji_events</span>
+        ${m.tournament || ''}
+      </div>
+
+      ${teams.length >= 2 ? `
+      <div class="teams-row">
+        <div class="team">
+          ${t1.flag?.src ? `<img class="team-flag" src="${t1.flag.src}" onerror="this.style.display='none'" loading="lazy">` : ''}
+          <span class="team-name" style="color:${t1.color||'var(--text)'}">${t1.shortName||t1.name||''}</span>
+          ${t1Bat && isLive ? `<div class="batting-indicator"></div>` : ''}
+        </div>
+
+        ${hasBatting && isLive ? `
+          <div style="display:flex;flex-direction:column;align-items:center;gap:6px;flex:1.4">
+            ${score1 ? `<div class="score-box">
+              <span class="score-runs">${score1.runs}/${score1.wickets}</span>
+              <div class="score-overs">${score1.overs} ov</div>
+            </div>` : `<div class="vs-dot">VS</div>`}
+            ${score2 ? `<div class="score-box" style="background:#0d1526">
+              <span class="score-runs">${score2.runs}/${score2.wickets}</span>
+              <div class="score-overs">${score2.overs} ov</div>
+            </div>` : ''}
+          </div>
+        ` : `<div class="vs-dot">VS</div>`}
+
+        <div class="team">
+          ${t2.flag?.src ? `<img class="team-flag" src="${t2.flag.src}" onerror="this.style.display='none'" loading="lazy">` : ''}
+          <span class="team-name" style="color:${t2.color||'var(--text)'}">${t2.shortName||t2.name||''}</span>
+          ${t2Bat && isLive ? `<div class="batting-indicator"></div>` : ''}
+        </div>
+      </div>
+      ` : ''}
+
+      <div class="divider"></div>
+
+      <div class="time-row" style="margin-bottom:12px">
+        <span class="material-icons-round">schedule</span>
+        ${formatDate(m.startTime)}
+        ${m.language && m.language !== 'BLOODY_SWEET' ? `
+          <span style="margin-left:auto;background:var(--bg-card2);padding:2px 8px;border-radius:6px;font-size:10px;font-weight:600;color:var(--muted2)">
+            ${m.language}
+          </span>
+        ` : ''}
+      </div>
+
+      ${isLive
+        ? `<button class="watch-btn" onclick="openQuality(${index})">
+            <span class="material-icons-round">play_arrow</span>
+            Watch Live
+           </button>`
+        : `<div class="scheduled-btn">
+            <span class="material-icons-round">lock_clock</span>
+            Not Started Yet
+           </div>`
+      }
+    </div>
+  `;
+  return card;
+}
+
+function formatDate(t) {
+  if (!t) return '–';
+  // Try parsing "09 June 2026 10:30 AM" format
+  const d = new Date(t);
+  if (isNaN(d)) return t;
+  return d.toLocaleString('en-IN', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit', hour12:true });
+}
+
+// ── TABS ──
+function filterMatches(filter, el) {
+  currentFilter = filter;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  let filtered = allMatches;
+  if (filter === 'live') filtered = allMatches.filter(m => (m.status||'').toUpperCase()==='LIVE');
+  else if (filter === 'upcoming') filtered = allMatches.filter(m => (m.status||'').toUpperCase()!=='LIVE');
+  else if (filter === 'cricket') filtered = allMatches.filter(m => (m.category||'').toLowerCase()==='cricket');
+  renderMatches(filtered);
+}
+
+// ── QUALITY MODAL ──
+function openQuality(index) {
+  const m = allMatches[index];
+  activeMatchIndex = index;
+  const streams = m.auto_streams?.[0]?.auto || '';
+  const cdn = m.STREAMING_CDN || {};
+
+  if (!streams && !cdn.Primary_Playback_URL) { alert('Stream not available'); return; }
+
+  document.getElementById('qualModalSub').textContent = m.title || 'Select quality';
+
+  // Build CDN URLs map
+  currentCdnUrls = {};
+  if (cdn.Primary_Playback_URL) currentCdnUrls['Primary'] = cdn.Primary_Playback_URL;
+  if (cdn.fancode_cdn) currentCdnUrls['FanCode'] = cdn.fancode_cdn;
+  if (cdn.fancode_bd_cdn) currentCdnUrls['BD CDN'] = cdn.fancode_bd_cdn;
+  if (cdn.backup?.fancode_dai_cdn) currentCdnUrls['DAI'] = cdn.backup.fancode_dai_cdn;
+
+  // CDN chips
+  const cdnRow = document.getElementById('cdnRow');
+  cdnRow.innerHTML = '';
+  selectedCdn = Object.keys(currentCdnUrls)[0] || 'Primary';
+  Object.keys(currentCdnUrls).forEach(key => {
+    const chip = document.createElement('div');
+    chip.className = 'cdn-chip' + (key === selectedCdn ? ' active' : '');
+    chip.textContent = key;
+    chip.onclick = () => {
+      selectedCdn = key;
+      document.querySelectorAll('.cdn-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      buildQualityButtons(streams);
+    };
+    cdnRow.appendChild(chip);
+  });
+
+  buildQualityButtons(streams);
+  document.getElementById('qualityModal').classList.add('open');
+}
+
+function buildQualityButtons(streams) {
+  const grid = document.getElementById('qualityGrid');
+  grid.innerHTML = '';
+
+  if (!streams) {
+    // Direct URL only
+    const url = Object.values(currentCdnUrls)[0] || '';
+    const chip = document.createElement('div');
+    chip.className = 'quality-chip';
+    chip.innerHTML = `<span class="q-res">AUTO</span><span class="q-bw">Best Quality</span>`;
+    chip.onclick = () => navigate(url);
+    grid.appendChild(chip);
+    return;
+  }
+
+  const lines = streams.split('\n');
+  const qualities = [];
+  lines.forEach((line,i) => {
+    if (line.includes('RESOLUTION=')) {
+      const res = line.split('RESOLUTION=')[1].split(',')[0];
+      const height = res.split('x')[1];
+      const bw = line.match(/BANDWIDTH=(\d+)/);
+      const bwMbps = bw ? (parseInt(bw[1])/1000000).toFixed(1) + ' Mbps' : '';
+      const baseUrl = lines[i+1]?.trim() || '';
+      qualities.push({ label: height+'p', bw: bwMbps, baseUrl });
+    }
+  });
+
+  qualities.reverse().forEach(q => {
+    const chip = document.createElement('div');
+    chip.className = 'quality-chip';
+    chip.innerHTML = `<span class="q-res">${q.label}</span><span class="q-bw">${q.bw}</span>`;
+    chip.onclick = () => {
+      // Swap CDN in URL
+      let url = q.baseUrl;
+      const cdnUrl = currentCdnUrls[selectedCdn];
+      if (cdnUrl) {
+        try {
+          const base = new URL(cdnUrl);
+          const orig = new URL(url);
+          url = base.origin + orig.pathname;
+        } catch(e) {}
+      }
+    navigate(url);
+    };
+    grid.appendChild(chip);
+  });
+}
+
+function navigate(url) {
+  closeQuality();
+  window.location.href = PLAYER_URL + encodeURIComponent(url);
+}
+
+function closeQuality() {
+  document.getElementById('qualityModal').classList.remove('open');
+}
+
+// Close on overlay click
+document.getElementById('qualityModal').addEventListener('click', e => {
+  if (e.target === document.getElementById('qualityModal')) closeQuality();
+});
+
+// ── LOADING SKELETONS ──
+(function showSkeletons() {
+  const root = document.getElementById('matchesRoot');
+  const g = document.createElement('div');
+  g.className = 'loader-grid';
+  for (let i=0;i<6;i++) {
+    const s = document.createElement('div');
+    s.className = 'skeleton';
+    g.appendChild(s);
+  }
+  root.appendChild(g);
+})();
+</script>
+</body>
+</html>
